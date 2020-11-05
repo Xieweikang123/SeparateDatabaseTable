@@ -10,6 +10,7 @@ namespace SeparateDatabaseTable
     {
         static void Main(string[] args)
         {
+
         }
     }
 }
