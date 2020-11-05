@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace SeparateDatabaseTable.Models
 {
-    public sealed class DemoTable:BaseModel
+    public class BaseModel
     {
-        public int Id { get; set; }
-        public string Value { get; set; }
+        public DateTime CreateTime {
+            get { return DateTime.Now; }
+        }
     }
 }
