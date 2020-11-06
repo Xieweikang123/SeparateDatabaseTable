@@ -12,19 +12,19 @@ namespace SeparateDatabaseTable
     class Program
     {
         static void Main(string[] args) {
-            //SeparateTableManager.tableNamePrefix = "DemoTable_";
 
-
-            var demoTableEntity=new DemoTable(){Value="2333"};
-           
             var entities= Enumerable.Range(0, 1000).Select(i => new DemoTable()
             {
                 Value ="testValue" + i
             });
 
-            SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Day);
+            //SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Day);
+
+            var tableName= SeparateTableManager.GetTableSuffixNameByDateTime("DemoTable", DateTime.Now, ShardingType.Day);
+            var list= DapperHelper.QueryList<DemoTable>($"select * from {tableName}", null);
 
 
+            var list1= DapperHelper.QueryList<DemoTable>($"select * from {tableName} where CreateTime between @dt1 and @dt2", new{dt1=DateTime.Now.AddHours(-10),dt2= "2020-11-06 11:47:21.580" });
 
             //DapperHelper.Insert("insert into DemoTable Values(@Value,@CreateTime)", entities);
 

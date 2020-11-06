@@ -42,5 +42,26 @@ namespace DbHelper
                 return result;
             }
         }
+
+        //public static List<TEntity> QueryList<TEntity>(string sql,TEntity entity) {
+        //    using (var connection = new SqlConnection(connectionString))
+        //    {
+        //        //connection.Query<Person>("select * from Person").ToList();
+        //        return connection.Query<TEntity>(sql, entity).ToList();
+
+        //        //return connection.Query<TEntity>("select * from Person where id=@ID", entity).ToList();
+        //    }
+        //}
+        public static List<TEntity> QueryList<TEntity>(string sql, object obj)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                //connection.Query<Person>("select * from Person").ToList();
+                return connection.Query<TEntity>(sql, obj).ToList();
+
+                //return connection.Query<TEntity>("select * from Person where id=@ID", entity).ToList();
+            }
+        }
+
     }
 }

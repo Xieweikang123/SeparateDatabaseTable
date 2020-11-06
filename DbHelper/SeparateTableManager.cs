@@ -74,15 +74,21 @@ namespace DbHelper
                     tableName = GetLastInsertTableName(tableNamePrefix);
                     break;
                 case ShardingType.Year:
-                    //var suffix = DateTime.Now.Year;
-                    tableName = tableNamePrefix + DateTime.Now.Year;
-                    break;
                 case ShardingType.Month:
-                    tableName = tableNamePrefix + DateTime.Now.Year + "_" + DateTime.Now.Month;
-                    break;
                 case ShardingType.Day:
-                    tableName = tableNamePrefix + DateTime.Now.Year + "_" + DateTime.Now.Month+"_"+DateTime.Now.Day;
+                    tableName = GetTableSuffixNameByDateTime(tableNamePrefix,DateTime.Now, shardingType);
                     break;
+
+                    //case ShardingType.Year:
+                    //    //var suffix = DateTime.Now.Year;
+                    //    tableName = tableNamePrefix + DateTime.Now.Year;
+                    //    break;
+                    //case ShardingType.Month:
+                    //    tableName = tableNamePrefix + DateTime.Now.Year + "_" + DateTime.Now.Month;
+                    //    break;
+                    //case ShardingType.Day:
+                    //    tableName = tableNamePrefix + DateTime.Now.Year + "_" + DateTime.Now.Month+"_"+DateTime.Now.Day;
+                    //    break;
             }
             //数据表是否存在
             if (!IsTableExist(tableName)) {
@@ -111,6 +117,24 @@ namespace DbHelper
             }
 
             return result;
+        }
+
+        public static string GetTableSuffixNameByDateTime(string tableNamePrefix, DateTime dateTime,ShardingType shardingType) {
+            var tableName = string.Empty;
+            switch (shardingType) {
+                case ShardingType.Year:
+                    //var suffix = DateTime.Now.Year;
+                    tableName = tableNamePrefix + DateTime.Now.Year;
+                    break;
+                case ShardingType.Month:
+                    tableName = tableNamePrefix + DateTime.Now.Year + "_" + DateTime.Now.Month;
+                    break;
+                case ShardingType.Day:
+                    tableName = tableNamePrefix + DateTime.Now.Year + "_" + DateTime.Now.Month + "_" + DateTime.Now.Day;
+                    break;
+            }
+
+            return tableName;
         }
 
         private static bool IsTableExist(string tableName) {
