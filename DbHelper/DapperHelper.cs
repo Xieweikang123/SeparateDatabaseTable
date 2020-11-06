@@ -52,16 +52,26 @@ namespace DbHelper
         //        //return connection.Query<TEntity>("select * from Person where id=@ID", entity).ToList();
         //    }
         //}
+
         public static List<TEntity> QueryList<TEntity>(string sql, object obj)
         {
             using (var connection = new SqlConnection(connectionString))
             {
+                //connection.QueryAsync()
                 //connection.Query<Person>("select * from Person").ToList();
                 return connection.Query<TEntity>(sql, obj).ToList();
 
                 //return connection.Query<TEntity>("select * from Person where id=@ID", entity).ToList();
             }
         }
+        public static Task< IEnumerable<TEntity>> QueryListAsync<TEntity>(string sql, object obj)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                return connection.QueryAsync<TEntity>(sql, obj);
+            }
+        }
+
 
     }
 }
