@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -35,9 +36,11 @@ namespace DbHelper
         {
             using (var connection = new SqlConnection(connectionString))
             {
-                return connection.Execute(sql, entity);
-            }
 
+                var result = connection.Execute(sql, entity);
+
+                return result;
+            }
         }
     }
 }

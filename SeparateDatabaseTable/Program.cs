@@ -14,15 +14,23 @@ namespace SeparateDatabaseTable
         static void Main(string[] args) {
             //SeparateTableManager.tableNamePrefix = "DemoTable_";
 
-            var tablename = SeparateTableManager.GetLastInsertTableName("DemoTable_");
 
             var demoTableEntity=new DemoTable(){Value="2333"};
            
-            var entities= Enumerable.Range(0, 10).Select(i => new DemoTable()
+            var entities= Enumerable.Range(0, 1000).Select(i => new DemoTable()
             {
-                Value = "name" + i
+                Value ="testValue" + i
             });
-            SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable_", 3);
+
+            SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Day);
+
+
+
+            //DapperHelper.Insert("insert into DemoTable Values(@Value,@CreateTime)", entities);
+
+            //foreach (var item in entities) {
+            //     SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", item, "DemoTable_");
+            //}
 
 
             //var r1 = SqlHelper.ExecuteScalar($"select count(1) from {tablename}");
@@ -33,6 +41,9 @@ namespace SeparateDatabaseTable
             //});
             //DapperHelper.Insert("", usersList);
 
+            Console.WriteLine("ok");
+
+            Console.ReadKey();
         }
     }
 }
