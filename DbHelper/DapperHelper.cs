@@ -68,7 +68,7 @@ namespace DbHelper
         {
             using (var connection = new SqlConnection(connectionString))
             {
-                return connection.QueryAsync<TEntity>(sql, obj);
+                return  connection.QueryAsync<TEntity>(sql, obj);
             }
         }
 

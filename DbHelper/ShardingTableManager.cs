@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using SeparateDataHelper;
 
@@ -20,7 +21,7 @@ namespace DbHelper
         Month,
         Day
     }
-    public class ShardingTableManager
+    public class ShardingTableManager<TEntity>
     {
         /// <summary>
         /// 要分表的表前缀
@@ -28,19 +29,73 @@ namespace DbHelper
         public static string tableNamePrefix;
 
         private static readonly int eachTableSize = 2000;
+        /// <summary>
+        /// 查询结果集
+        /// </summary>
+        private static List<TEntity> resultEntities;
+        /// <summary>
+        /// 将所有分表汇总到一起
+        /// </summary>
+        /// <typeparam name="TEntity"></typeparam>
+        /// <param name="tableNamePrefix"></param>
+        /// <param name="sql"></param>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string sql, object obj) {
+            
+            //初始化结果集
+            resultEntities=new List<TEntity>();
 
-
-        public static IEnumerable<TEntity> Query<TEntity>(string tableNamePrefix, string sql, object obj)
-        {
+            //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
-            var resultList = new List<TEntity>();
-            foreach (var tableName in allShardingTableNameList) {
-                sql = $"select * from {tableName}";
-                resultList.AddRange( DapperHelper.QueryList<TEntity>(sql,null));
+            //var resultList = new List<TEntity>();
+
+            var manualResetEventList = new List<ManualResetEvent>();
+
+            for (var i = 0; i <allShardingTableNameList.Count() ; i++)
+            {
+                var mre = new ManualResetEvent(false);
+                manualResetEventList.Add(mre);
+                //ThreadPool.QueueUserWorkItem(ThreadMethod, new { id = i, url = "www", mre });
+                sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
+                ThreadPool.QueueUserWorkItem(ThreadMethod(sql, mre, resultEntities));
+                //ThreadPool.QueueUserWorkItem(state =>
+                //{
+                //    sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
+                //    resultEntities.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
+                //    //此线程执行完
+                //    mre.Set();
+                //});
+            }
+            //等待所有线程执行完毕
+            //WaitHandle.WaitAll(manualResetEventList.ToArray());
+
+
+            //foreach (var tableName in allShardingTableNameList) {
+            //    sql = $"select * from {tableName}";
+            //    Console.WriteLine(sql);
+            //    resultList.AddRange( DapperHelper.QueryList<TEntity>(sql,null));
+            //}
+            //ThreadPool.QueueUserWorkItem(null,null)
+            //resultList.Distinct();
+            return resultEntities;
+        }
+        public static WaitCallback ThreadMethod(string sql ,ManualResetEvent mre,List<TEntity> resultEntities) //方法内可以有参数，也可以没有参数
+        {
+            resultEntities.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
+
+            var ic = 0;
+            for (int i = 0; i < 1000000000; i++) {
+                 ic+= i;
             }
 
-            return resultList;
+            Console.WriteLine($"线程{sql}执行完毕 {ic}");
+
+            mre.Set();
+         
+            return (state)=> { };
         }
+
         /// <summary>
         /// 向数据库插入数据并判断是否需要分表
         /// </summary>

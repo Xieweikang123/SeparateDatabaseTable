@@ -43,7 +43,7 @@ namespace SeparateDatabaseTable
 
             #region 查询
 
-            var result= ShardingTableManager.Query<DemoTable>("DemoTable", "", null);
+            var result= ShardingTableManager<DemoTable>.QueryAll("DemoTable", "", null);
             #endregion
 
             //SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Count);
