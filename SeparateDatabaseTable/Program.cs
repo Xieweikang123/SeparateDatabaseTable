@@ -43,10 +43,10 @@ namespace SeparateDatabaseTable
 
             #region 查询
 
-            var result= ShardingTableManager<DemoTable>.QueryAll("DemoTable", "", null);
+            var result= ShardingTableManager<DemoTable>.QueryAll("DemoTable", "where Id<@Id", new{Id= "495"});
             foreach (var item in result) {
                 
-                Console.Write(item.Id+",");
+                Console.Write(item.Value+",");
             }
             
             #endregion

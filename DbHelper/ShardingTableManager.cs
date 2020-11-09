@@ -41,7 +41,7 @@ namespace DbHelper
         /// <param name="sql"></param>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string sql, object obj)
+        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string whereSql, object obj)
         {
 
             //初始化结果集
@@ -58,10 +58,12 @@ namespace DbHelper
                 var mre = new ManualResetEvent(false);
                 manualResetEventList.Add(mre);
                 //ThreadPool.QueueUserWorkItem(ThreadMethod, new { id = i, url = "www", mre });
-                sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
-                //ThreadPool.QueueUserWorkItem(ThreadMethod(sql, mre, resultEntities));
+               var  sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
+               if (!string.IsNullOrWhiteSpace(whereSql)) {
+                   sql += $"  {whereSql}";
+               }
 
-                ThreadPool.QueueUserWorkItem(ThreadMethod, new { sql, mre, resultEntities1 });
+                ThreadPool.QueueUserWorkItem(ThreadMethod, new { sql, mre, resultEntities1,obj });
 
                 //ThreadPool.QueueUserWorkItem(state =>
                 //{
@@ -86,20 +88,16 @@ namespace DbHelper
         public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
         {
             var sql = ((dynamic)parameter).sql;
+
+            var obj=((dynamic)parameter).obj;
+
             var resultEntities1 = ((dynamic)parameter).resultEntities1 as List<TEntity>;
             lock (resultEntities1)
             {
-                resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
+                resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, obj));
             }
-
-            //var ic = 0;
-            //for (int i = 0; i < 1000000000; i++)
-            //{
-            //    ic += i;
-            //}
-
+            
             Console.WriteLine($"线程{sql}执行完毕 ");
-
             ((dynamic)parameter).mre.Set();
         }
 
