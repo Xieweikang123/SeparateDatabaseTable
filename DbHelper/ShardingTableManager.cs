@@ -41,10 +41,11 @@ namespace DbHelper
         /// <param name="sql"></param>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string sql, object obj) {
-            
+        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string sql, object obj)
+        {
+
             //初始化结果集
-            resultEntities=new List<TEntity>();
+            var resultEntities1 = new List<TEntity>();
 
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
@@ -52,13 +53,16 @@ namespace DbHelper
 
             var manualResetEventList = new List<ManualResetEvent>();
 
-            for (var i = 0; i <allShardingTableNameList.Count() ; i++)
+            for (var i = 0; i < allShardingTableNameList.Count(); i++)
             {
                 var mre = new ManualResetEvent(false);
                 manualResetEventList.Add(mre);
                 //ThreadPool.QueueUserWorkItem(ThreadMethod, new { id = i, url = "www", mre });
                 sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
-                ThreadPool.QueueUserWorkItem(ThreadMethod(sql, mre, resultEntities));
+                //ThreadPool.QueueUserWorkItem(ThreadMethod(sql, mre, resultEntities));
+
+                ThreadPool.QueueUserWorkItem(ThreadMethod, new { sql, mre, resultEntities1 });
+
                 //ThreadPool.QueueUserWorkItem(state =>
                 //{
                 //    sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
@@ -68,8 +72,7 @@ namespace DbHelper
                 //});
             }
             //等待所有线程执行完毕
-            //WaitHandle.WaitAll(manualResetEventList.ToArray());
-
+            WaitHandle.WaitAll(manualResetEventList.ToArray());
 
             //foreach (var tableName in allShardingTableNameList) {
             //    sql = $"select * from {tableName}";
@@ -78,22 +81,26 @@ namespace DbHelper
             //}
             //ThreadPool.QueueUserWorkItem(null,null)
             //resultList.Distinct();
-            return resultEntities;
+            return resultEntities1;
         }
-        public static WaitCallback ThreadMethod(string sql ,ManualResetEvent mre,List<TEntity> resultEntities) //方法内可以有参数，也可以没有参数
+        public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
         {
-            resultEntities.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
-
-            var ic = 0;
-            for (int i = 0; i < 1000000000; i++) {
-                 ic+= i;
+            var sql = ((dynamic)parameter).sql;
+            var resultEntities1 = ((dynamic)parameter).resultEntities1 as List<TEntity>;
+            lock (resultEntities1)
+            {
+                resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
             }
 
-            Console.WriteLine($"线程{sql}执行完毕 {ic}");
+            //var ic = 0;
+            //for (int i = 0; i < 1000000000; i++)
+            //{
+            //    ic += i;
+            //}
 
-            mre.Set();
-         
-            return (state)=> { };
+            Console.WriteLine($"线程{sql}执行完毕 ");
+
+            ((dynamic)parameter).mre.Set();
         }
 
         /// <summary>

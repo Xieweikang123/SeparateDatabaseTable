@@ -44,6 +44,11 @@ namespace SeparateDatabaseTable
             #region 查询
 
             var result= ShardingTableManager<DemoTable>.QueryAll("DemoTable", "", null);
+            foreach (var item in result) {
+                
+                Console.Write(item.Id+",");
+            }
+            
             #endregion
 
             //SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Count);
