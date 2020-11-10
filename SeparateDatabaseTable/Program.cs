@@ -15,7 +15,10 @@ namespace SeparateDatabaseTable
         {
 
             #region 创建数据
-            //var entities = Enumerable.Range(0, 10000).Select(i => new DemoTable()
+
+            //var totalCount = 10000000;
+            //var eachCount = 500000;
+            //var entities = Enumerable.Range(0, totalCount).Select(i => new DemoTable()
             //{
             //    Value = "testValue" + i
             //});
@@ -28,7 +31,7 @@ namespace SeparateDatabaseTable
             //{
             //    listItem.Add(item);
 
-            //    if ((++index) % 2000 == 0)
+            //    if ((++index) % eachCount == 0)
             //    {
             //        groupList.Add(listItem);
             //        listItem = new List<DemoTable>();
@@ -37,18 +40,23 @@ namespace SeparateDatabaseTable
 
             //foreach (var eachItem in groupList)
             //{
-            //    SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", eachItem, "DemoTable", ShardingType.Count);
+            //    Console.WriteLine($"插入{eachItem.Count()}条");
+            //    ShardingTableManager<DemoTable>.InsertToSeparateTable("@Value,@CreateTime", eachItem, "DemoTable", ShardingType.Count);
             //}
             #endregion
 
             #region 查询
 
-            var result= ShardingTableManager<DemoTable>.QueryAll("DemoTable", "where Id<@Id", new{Id= "495"});
-            foreach (var item in result) {
-                
-                Console.Write(item.Value+",");
-            }
-            
+            //var result = ShardingTableManager<DemoTable>.QueryAll("DemoTable", "", new { Id = "10000" },"count(1)");
+            //var result = ShardingTableManager<DemoTable>.QueryAll("DemoTable", "where Value=@value", new { value = "testValue400267" });
+            //foreach (var item in result)
+            //{
+            //    Console.Write(item.Value + ",");
+            //}
+
+            //分页
+            var r1 = ShardingTableManager<DemoTable>.GetPageSql(300000, 2, "*", "DemoTable0", "", "", "desc", "Id");
+
             #endregion
 
             //SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Count);

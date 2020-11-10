@@ -41,15 +41,13 @@ namespace DbHelper
         /// <param name="sql"></param>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string whereSql, object obj)
+        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string whereSql = "", object obj= null,string  filesSql= "*" )
         {
 
             //初始化结果集
             var resultEntities1 = new List<TEntity>();
-
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
-            //var resultList = new List<TEntity>();
 
             var manualResetEventList = new List<ManualResetEvent>();
 
@@ -58,33 +56,88 @@ namespace DbHelper
                 var mre = new ManualResetEvent(false);
                 manualResetEventList.Add(mre);
                 //ThreadPool.QueueUserWorkItem(ThreadMethod, new { id = i, url = "www", mre });
-               var  sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
+               var  sql = $"select {filesSql} from {allShardingTableNameList.ElementAt(i)}";
                if (!string.IsNullOrWhiteSpace(whereSql)) {
                    sql += $"  {whereSql}";
                }
 
                 ThreadPool.QueueUserWorkItem(ThreadMethod, new { sql, mre, resultEntities1,obj });
-
-                //ThreadPool.QueueUserWorkItem(state =>
-                //{
-                //    sql = $"select * from {allShardingTableNameList.ElementAt(i)}";
-                //    resultEntities.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
-                //    //此线程执行完
-                //    mre.Set();
-                //});
             }
             //等待所有线程执行完毕
             WaitHandle.WaitAll(manualResetEventList.ToArray());
-
-            //foreach (var tableName in allShardingTableNameList) {
-            //    sql = $"select * from {tableName}";
-            //    Console.WriteLine(sql);
-            //    resultList.AddRange( DapperHelper.QueryList<TEntity>(sql,null));
-            //}
-            //ThreadPool.QueueUserWorkItem(null,null)
-            //resultList.Distinct();
+ 
             return resultEntities1;
         }
+        /// <summary>
+        /// 分页查询分表
+        /// </summary>
+        /// <param name="pageSize">每页大小</param>
+        /// <param name="currentPage">当前页，从1开始</param>
+        /// <param name="columns">要筛选的列</param>
+        /// <param name="tableNamePrefix">分表前缀</param>
+        /// <param name="whereStr">查询条件</param>
+        /// <param name="orderColumn">排序的字段</param>
+        /// <param name="orderType">排序类型 desc asc</param>
+        /// <param name="pkColumn">主键</param>
+        /// <returns></returns>
+        public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn) {
+
+
+
+            var sql = GetPageSql(pageSize, currentPage, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
+
+            var sss = DapperHelper.QueryList<TEntity>(sql, null);
+
+            return sss;
+        }
+
+
+        /// <summary>
+        /// 获取分页Sql  (适用sql server 2012版本以上)
+        /// </summary>
+        /// <param name="pageSize">分页大小</param>
+        /// <param name="currentPage">当前第几页</param>
+        /// <param name="columns">要查询的列</param>
+        /// <param name="tableName">表名称</param>
+        /// <param name="whereStr">条件语句(要以and开头)</param>
+        /// <param name="orderColumn">排序字段</param>
+        /// <param name="orderType">排序类型(desc, asc)</param>
+        /// <param name="pkColumn">主键</param>
+        /// <returns></returns>
+        public static string GetPageSql(Int32 pageSize, Int32 currentPage, String columns, String tableName, String whereStr, String orderColumn, String orderType, String pkColumn) {
+            var sqlStr = $"select {columns} from {tableName} ";
+            if (!string.IsNullOrWhiteSpace(whereStr)) {
+                sqlStr += $" where { whereStr}";
+            }
+            //没有排序字段,用id排序
+            if (string.IsNullOrWhiteSpace(orderColumn)) {
+                sqlStr += $" order by {pkColumn} {orderType}";
+            } else {
+                sqlStr += " order by " + orderColumn + orderType;
+            }
+            //当前第几页   OFFSET 0*10 ROWS
+            sqlStr += $" offset {(currentPage - 1) * pageSize} rows";
+            sqlStr += $" fetch next {pageSize} rows only";
+            return sqlStr;
+        }
+        /// <summary>
+        /// 统计所有分表里数据行项总数
+        /// </summary>
+        /// <param name="tableNamePrefix"></param>
+        /// <returns></returns>
+        public static int QueryCount(string tableNamePrefix) {
+
+            var allCount = 0;
+            //获取所有分表集合
+            var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
+            foreach (var tableName in allShardingTableNameList) {
+                var sql = $"select count(1) from {tableName}";
+                allCount += (int)SqlHelper.ExecuteScalar(sql);
+            }
+
+            return allCount;
+        }
+        
         public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
         {
             var sql = ((dynamic)parameter).sql;
