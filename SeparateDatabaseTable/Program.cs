@@ -47,7 +47,13 @@ namespace SeparateDatabaseTable
 
             #region 查询
 
-            //var result = ShardingTableManager<DemoTable>.QueryAll("DemoTable", "", new { Id = "10000" },"count(1)");
+            var stopWatch=new System.Diagnostics.Stopwatch();
+            stopWatch.Start();
+            
+            var result = ShardingTableManager<DemoTable>.QueryAll("DemoTable", "where Value=@Value", new{Value= "testValue233" });
+          
+            stopWatch.Stop();
+            Console.WriteLine("task1 :"+stopWatch.Elapsed);
             //var result = ShardingTableManager<DemoTable>.QueryAll("DemoTable", "where Value=@value", new { value = "testValue400267" });
             //foreach (var item in result)
             //{
@@ -55,20 +61,19 @@ namespace SeparateDatabaseTable
             //}
 
             //分页
-            var r1 = ShardingTableManager<DemoTable>.GetPageSql(300000, 2, "*", "DemoTable0", "", "", "desc", "Id");
+            //var r1 = ShardingTableManager<DemoTable>.GetPageSql(300000, 2, "*", "DemoTable", "", "", "desc", "Id");
 
             #endregion
 
             //SeparateTableManager.InsertToSeparateTable("@Value,@CreateTime", entities, "DemoTable", ShardingType.Count);
 
 
-            //查询
-            //var tableName= SeparateTableManager.GetTableSuffixNameByDateTime("DemoTable", DateTime.Now, ShardingType.Day);
-            //var list= DapperHelper.QueryList<DemoTable>($"select * from {tableName}", null);
 
-
-            //var list1= DapperHelper.QueryList<DemoTable>($"select * from {tableName} where CreateTime between @dt1 and @dt2", new{dt1=DateTime.Now.AddHours(-10),dt2= "2020-11-06 11:47:21.580" });
-
+            //stopWatch.Restart();
+            //var list1 = DapperHelper.QueryList<DemoTable>($" SELECT * FROM dbo.DemoTable0 UNION ALL SELECT * FROM dbo.DemoTable1 UNION ALL SELECT * FROM dbo.DemoTable2 UNION ALL SELECT * FROM dbo.DemoTable3 UNION ALL SELECT * FROM dbo.DemoTable4", null);
+            //stopWatch.Stop();
+            //Console.WriteLine("task2 :"+ stopWatch.Elapsed);
+        
             //DapperHelper.Insert("insert into DemoTable Values(@Value,@CreateTime)", entities);
 
             //foreach (var item in entities) {

@@ -49,22 +49,32 @@ namespace DbHelper
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
 
-            var manualResetEventList = new List<ManualResetEvent>();
-
-            for (var i = 0; i < allShardingTableNameList.Count(); i++)
-            {
-                var mre = new ManualResetEvent(false);
-                manualResetEventList.Add(mre);
-                //ThreadPool.QueueUserWorkItem(ThreadMethod, new { id = i, url = "www", mre });
-               var  sql = $"select {filesSql} from {allShardingTableNameList.ElementAt(i)}";
-               if (!string.IsNullOrWhiteSpace(whereSql)) {
-                   sql += $"  {whereSql}";
-               }
-
-                ThreadPool.QueueUserWorkItem(ThreadMethod, new { sql, mre, resultEntities1,obj });
+            var uniAllSql = string.Empty;
+            var sqlList=new List<string>();
+            foreach (var tableName in allShardingTableNameList) {
+                sqlList.Add($" select {filesSql} from {tableName} {whereSql} ");
+                //uniAllSql += $" select {filesSql} from {tableName} {whereSql} union all ";
             }
-            //等待所有线程执行完毕
-            WaitHandle.WaitAll(manualResetEventList.ToArray());
+
+            uniAllSql = string.Join(" union all ", sqlList);
+
+            resultEntities1 = DapperHelper.QueryList<TEntity>(uniAllSql, obj);
+            //var manualResetEventList = new List<ManualResetEvent>();
+
+            //for (var i = 0; i < allShardingTableNameList.Count(); i++)
+            //{
+            //    var mre = new ManualResetEvent(false);
+            //    manualResetEventList.Add(mre);
+            //    //ThreadPool.QueueUserWorkItem(ThreadMethod, new { id = i, url = "www", mre });
+            //   var  sql = $"select {filesSql} from {allShardingTableNameList.ElementAt(i)}";
+            //   if (!string.IsNullOrWhiteSpace(whereSql)) {
+            //       sql += $"  {whereSql}";
+            //   }
+
+            //    ThreadPool.QueueUserWorkItem(ThreadMethod, new { sql, mre, resultEntities1,obj });
+            //}
+            ////等待所有线程执行完毕
+            //WaitHandle.WaitAll(manualResetEventList.ToArray());
  
             return resultEntities1;
         }
@@ -82,9 +92,10 @@ namespace DbHelper
         /// <returns></returns>
         public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn) {
 
+            
 
 
-            var sql = GetPageSql(pageSize, currentPage, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
+            var sql = GetPageSql(pageSize, currentPage, columns, tableNamePrefix, whereStr, orderColumn, orderType, pkColumn);
 
             var sss = DapperHelper.QueryList<TEntity>(sql, null);
 
@@ -138,21 +149,21 @@ namespace DbHelper
             return allCount;
         }
         
-        public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
-        {
-            var sql = ((dynamic)parameter).sql;
+        //public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
+        //{
+        //    var sql = ((dynamic)parameter).sql;
 
-            var obj=((dynamic)parameter).obj;
+        //    var obj=((dynamic)parameter).obj;
 
-            var resultEntities1 = ((dynamic)parameter).resultEntities1 as List<TEntity>;
-            lock (resultEntities1)
-            {
-                resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, obj));
-            }
+        //    var resultEntities1 = ((dynamic)parameter).resultEntities1 as List<TEntity>;
+        //    lock (resultEntities1)
+        //    {
+        //        resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, obj));
+        //    }
             
-            Console.WriteLine($"线程{sql}执行完毕 ");
-            ((dynamic)parameter).mre.Set();
-        }
+        //    Console.WriteLine($"线程{sql}执行完毕 ");
+        //    ((dynamic)parameter).mre.Set();
+        //}
 
         /// <summary>
         /// 向数据库插入数据并判断是否需要分表
