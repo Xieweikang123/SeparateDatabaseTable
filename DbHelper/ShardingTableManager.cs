@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -41,7 +42,7 @@ namespace DbHelper
         /// <param name="sql"></param>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string whereSql = "", object obj= null,string  filesSql= "*" )
+        public static IEnumerable<TEntity> QueryAll(string tableNamePrefix, string whereSql = "", object obj = null, string filesSql = "*")
         {
 
             //初始化结果集
@@ -50,8 +51,9 @@ namespace DbHelper
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
 
             var uniAllSql = string.Empty;
-            var sqlList=new List<string>();
-            foreach (var tableName in allShardingTableNameList) {
+            var sqlList = new List<string>();
+            foreach (var tableName in allShardingTableNameList)
+            {
                 sqlList.Add($" select {filesSql} from {tableName} {whereSql} ");
                 //uniAllSql += $" select {filesSql} from {tableName} {whereSql} union all ";
             }
@@ -75,7 +77,7 @@ namespace DbHelper
             //}
             ////等待所有线程执行完毕
             //WaitHandle.WaitAll(manualResetEventList.ToArray());
- 
+
             return resultEntities1;
         }
         /// <summary>
@@ -90,16 +92,56 @@ namespace DbHelper
         /// <param name="orderType">排序类型 desc asc</param>
         /// <param name="pkColumn">主键</param>
         /// <returns></returns>
-        public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn) {
+        public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn)
+        {
 
-            
+            //获取所有分表集合
+            var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
+
+            var resultList = new List<TEntity>();
+
+            //判断是单表操作还是多表操作
+            //当前页和页大小 
+            var pageOffset = (currentPage - 1) * pageSize;
 
 
-            var sql = GetPageSql(pageSize, currentPage, columns, tableNamePrefix, whereStr, orderColumn, orderType, pkColumn);
+            //当前已遍历表的行数
+            var currentSearchCount = 0;
+            var sql = string.Empty;
+            //从哪个表开始搜索
+            foreach (var tableName in allShardingTableNameList)
+            {
+                var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
+                currentSearchCount += currentTableRowCount;
+                //要分页的数据完全在这一张表内
+                if (pageOffset + pageSize <= currentSearchCount)
+                {
 
-            var sss = DapperHelper.QueryList<TEntity>(sql, null);
+                    sql = GetPageSql(pageSize - resultList.Count, 1, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
+                    resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
+                    return resultList;
+                }
 
-            return sss;
+                ////要分页的数据不完全在第一张表内
+                //有两种情况： 
+                //完全不在这张表中，继续
+                if (currentSearchCount <= pageOffset)
+                {
+                    continue;
+                }
+
+                // 部分在这张表内，其余在之后的表中
+                sql = GetPageSql(pageSize - resultList.Count, 1, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
+                resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
+
+
+            }
+
+            //var sql = GetPageSql(pageSize, currentPage, columns, tableNamePrefix, whereStr, orderColumn, orderType, pkColumn);
+
+            //var sss = DapperHelper.QueryList<TEntity>(sql, null);
+
+            return resultList;
         }
 
 
@@ -115,16 +157,21 @@ namespace DbHelper
         /// <param name="orderType">排序类型(desc, asc)</param>
         /// <param name="pkColumn">主键</param>
         /// <returns></returns>
-        public static string GetPageSql(Int32 pageSize, Int32 currentPage, String columns, String tableName, String whereStr, String orderColumn, String orderType, String pkColumn) {
+        public static string GetPageSql(Int32 pageSize, Int32 currentPage, String columns, String tableName, String whereStr, String orderColumn, String orderType, String pkColumn)
+        {
             var sqlStr = $"select {columns} from {tableName} ";
-            if (!string.IsNullOrWhiteSpace(whereStr)) {
+            if (!string.IsNullOrWhiteSpace(whereStr))
+            {
                 sqlStr += $" where { whereStr}";
             }
             //没有排序字段,用id排序
-            if (string.IsNullOrWhiteSpace(orderColumn)) {
-                sqlStr += $" order by {pkColumn} {orderType}";
-            } else {
-                sqlStr += " order by " + orderColumn + orderType;
+            if (string.IsNullOrWhiteSpace(orderColumn))
+            {
+                sqlStr += $" order by {pkColumn} {orderType} ";
+            }
+            else
+            {
+                sqlStr += $" order by {orderColumn} {orderType} ";
             }
             //当前第几页   OFFSET 0*10 ROWS
             sqlStr += $" offset {(currentPage - 1) * pageSize} rows";
@@ -136,19 +183,21 @@ namespace DbHelper
         /// </summary>
         /// <param name="tableNamePrefix"></param>
         /// <returns></returns>
-        public static int QueryCount(string tableNamePrefix) {
+        public static int QueryCount(string tableNamePrefix)
+        {
 
             var allCount = 0;
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
-            foreach (var tableName in allShardingTableNameList) {
+            foreach (var tableName in allShardingTableNameList)
+            {
                 var sql = $"select count(1) from {tableName}";
                 allCount += (int)SqlHelper.ExecuteScalar(sql);
             }
 
             return allCount;
         }
-        
+
         //public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
         //{
         //    var sql = ((dynamic)parameter).sql;
@@ -160,7 +209,7 @@ namespace DbHelper
         //    {
         //        resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, obj));
         //    }
-            
+
         //    Console.WriteLine($"线程{sql}执行完毕 ");
         //    ((dynamic)parameter).mre.Set();
         //}

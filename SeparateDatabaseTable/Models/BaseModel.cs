@@ -8,7 +8,8 @@ namespace SeparateDatabaseTable.Models
 {
     public class BaseModel
     {
-        public DateTime CreateTime {
+        public DateTime AddTime
+        {
             get { return DateTime.Now; }
         }
     }
