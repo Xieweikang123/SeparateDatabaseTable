@@ -110,8 +110,6 @@ namespace DbHelper
 
                 //当前表行项数 
                 var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
-                //已偏移量
-                var hasOffsetCount = currentTableRowCount;
                 //剩余偏移量
                 var residualOffsetCount = totalPageOffset - currentSearchCount;
                 residualOffsetCount = residualOffsetCount > 0 ? residualOffsetCount : 0;
