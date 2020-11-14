@@ -94,92 +94,45 @@ namespace DbHelper
         /// <returns></returns>
         public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn)
         {
-
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
-
-           
-
-            //判断是单表操作还是多表操作
-            //当前页和页大小 
-            var pageOffset = (currentPage - 1) * pageSize;
-
-
-            //当前已遍历表的行数
+            //总偏移量
+            var totalPageOffset = (currentPage - 1) * pageSize;
+            //当前已遍历表的行数 已偏移量
             var currentSearchCount = 0;
             var sql = string.Empty;
             //循环轮数
-            var tableIndex = 0;
+            var tableIndex = -1;
             var resultList = new List<TEntity>();
             foreach (var tableName in allShardingTableNameList)
             {
-                //当前表行项数 
-                var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
-                
-                //offsetPage 隔过去的行项数
-                var offsetCount = pageSize * (currentPage-1);
-               
-                if (tableIndex == 0) {
-                    //此表存在要分页的数据
-                    if (offsetCount <= currentTableRowCount) {
-                        //全部存在    数据全在此表内 隔过去的行项数+要选择的数量小于此表行数
-                        if (offsetCount + pageSize <= currentTableRowCount)
-                        {
-                            sql = GetPageSql(pageSize, currentPage, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
-                            resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
-                            return resultList;
-                        }
-                        else    //部分存在
-                        {
-                            sql = GetPageSql(pageSize, currentPage, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
-                            resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
-                        }
-                    }
-                } else if(tableIndex==1){
-                    //剩下的数据
-                    var remaindCount = pageSize - resultList.Count;
-                    //剩下的数据第二张表可填充完
-                    if (remaindCount <= currentTableRowCount) {
-
-                    }
-
-
-                    //不可填充完
-
-                    //上一个表获取了2w条数据，还剩1w
-                    sql = GetPageSql(pageSize-resultList.Count, 1, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
-                    resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
-                    return resultList;
-                }
-
                 tableIndex++;
 
-                //var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
-                //currentSearchCount += currentTableRowCount;
-                ////要分页的数据完全在这一张表内
-                //if (pageOffset + pageSize <= currentSearchCount)
-                //{
-                //    sql = GetPageSql(pageSize - resultList.Count, 1, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
-                //    resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
-                //    return resultList;
-                //}
+                //当前表行项数 
+                var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
+                //已偏移量
+                var hasOffsetCount = currentTableRowCount;
+                //剩余偏移量
+                var residualOffsetCount = totalPageOffset - currentSearchCount;
+                residualOffsetCount = residualOffsetCount > 0 ? residualOffsetCount : 0;
+                //剩余检索行数
+                var residualRowsCount = pageSize - resultList.Count;
+                currentSearchCount += currentTableRowCount;
+                //已检索表数据量小于分页偏移量，说明此表不在分页范围内，继续
+                if (currentSearchCount < totalPageOffset) {
+                    continue;
+                }
 
-                //////要分页的数据不完全在第一张表内
-                ////有两种情况： 
-                ////完全不在这张表中，继续
-                //if (currentSearchCount <= pageOffset)
-                //{
-                //    continue;
-                //}
-
-                //// 部分在这张表内，其余在之后的表中  
-                //sql = GetPageSql(pageSize - resultList.Count, 1, columns, tableName, whereStr, orderColumn, orderType, pkColumn);
-                //resultList.AddRange(DapperHelper.QueryList<TEntity>(sql, null));
+                //此表存在要分页的数据  存在多少，从哪里开始分页  ;
+                //分两种情况：1 初次分表  2 继续分表
+                sql = $"select * from {tableName} order by {orderColumn} {orderType} OFFSET {residualOffsetCount} rows fetch next {residualRowsCount} rows only";
+                var currentResult = DapperHelper.QueryList<TEntity>(sql, null);
+                resultList.AddRange(currentResult);
+                //检索够了
+                if (pageSize == resultList.Count) {
+                    return resultList;
+                }
             }
-
-            //var sql = GetPageSql(pageSize, currentPage, columns, tableNamePrefix, whereStr, orderColumn, orderType, pkColumn);
-
-            //var sss = DapperHelper.QueryList<TEntity>(sql, null);
 
             return resultList;
         }
