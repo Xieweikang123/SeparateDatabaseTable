@@ -3,13 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using DbHelper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SeparateDatabaseTable.Models;
+using Models;
 
 namespace DBHelperTest
 {
     [TestClass]
     public class ShardingTableManagerTest
     {
+        [TestMethod]
+        public void TestSecondarySearchPaging() {
+            var result = ShardingTableManager<DemoTable>.SecondarySearchPaging(3, 2, "DemoTable", "AddTime", "asc");
+        }
+
         [TestMethod]
         public void TestGetPageEntities()
         {

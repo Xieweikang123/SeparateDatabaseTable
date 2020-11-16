@@ -38,7 +38,15 @@ namespace DbHelper
             {
 
                 var result = connection.Execute(sql, entity);
+                return result;
+            }
+        }
+        public static int Insert<TEntity>(string sql, IEnumerable<TEntity> entities)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
 
+                var result = connection.Execute(sql, entities);
                 return result;
             }
         }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DbHelper;
-using SeparateDatabaseTable.Models;
+using Models;
 using SeparateDataHelper;
 
 namespace SeparateDatabaseTable
@@ -16,7 +16,6 @@ namespace SeparateDatabaseTable
         {
 
 
-
             #region 查询
 
             //var stopWatch=new System.Diagnostics.Stopwatch();
@@ -25,7 +24,7 @@ namespace SeparateDatabaseTable
             //var result = ShardingTableManager<DemoTable>.QueryAll("DemoTable", "where Value=@Value", new { Value = "testValue233" });
 
             //var result = ShardingTableManager<DemoTable>.GetPageEntities(20000 ,2, "*", "DemoTable", "", "AddTime", "asc", "Id");
-            var result1 = ShardingTableManager<DemoTable>.GetPageEntities(21000, 2, "*", "DemoTable", "", "AddTime", "asc", "Id");
+            //var result1 = ShardingTableManager<DemoTable>.GetPageEntities(21000, 2, "*", "DemoTable", "", "AddTime", "asc", "Id");
             
 
             //stopWatch.Stop();
@@ -66,15 +65,29 @@ namespace SeparateDatabaseTable
         private static void CreateData() {
             #region 创建数据
 
-            var totalCount = 100000;
-            var eachCount = 20000;
-       
-            var entities = Enumerable.Range(0, totalCount).Select(i => new DemoTable()
-            {
-                Id = Guid.NewGuid(),
-                Value = "testValue" + i,
-            });
+            var totalCount = 18;
+            var eachCount = 6;
 
+            //var time = DateTime.Now.AddMinutes(new Random().Next(1000));
+            var dateNow = DateTime.Now;
+            var random=new Random();
+            //var testData = dateNow.AddMinutes(random.Next(2000));
+            //var entities = Enumerable.Range(0, totalCount).Select(i => new DemoTable()
+            //{
+            //    Id = Guid.NewGuid(),
+            //    Value = "testValue" + i,
+            //    AddTime = dateNow.AddSeconds(random.Next(2000))
+            //});
+            var entities=new List<DemoTable>();
+            for (int i = 0; i < totalCount; i++) {
+                entities.Add(new DemoTable(){
+                Id=Guid.NewGuid(),
+                Value = "testValue" + i,
+                AddTime = dateNow.AddSeconds(random.Next(2000))
+                });
+            }
+
+            DapperHelper.Insert<DemoTable>("insert into DemoTable values(@Id,@Value,@AddTime)", entities);
 
             var groupList = new List<IEnumerable<DemoTable>>();
             var index = 0;

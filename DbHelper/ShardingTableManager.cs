@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Models;
 using SeparateDataHelper;
 
 namespace DbHelper
@@ -22,14 +23,14 @@ namespace DbHelper
         Month,
         Day
     }
-    public class ShardingTableManager<TEntity>
+    public class ShardingTableManager<TEntity>  where TEntity: BaseModel
     {
         /// <summary>
         /// 要分表的表前缀
         /// </summary>
         public static string tableNamePrefix;
 
-        private static readonly int eachTableSize = 2000;
+        private static readonly int eachTableSize = 6;
         /// <summary>
         /// 查询结果集
         /// </summary>
@@ -80,6 +81,82 @@ namespace DbHelper
 
             return resultEntities1;
         }
+
+        /// <summary>
+        /// 二次查找分页法
+        /// </summary>
+        /// <param name="tableNamePrefix"></param>
+        /// <param name="whereSql"></param>
+        /// <param name="obj"></param>
+        /// <param name="filesSql"></param>
+        /// <returns></returns>
+        public static IEnumerable<TEntity> SecondarySearchPaging(int pageSize,int currentPage, string tableNamePrefix, string orderColumn,string orderType, string whereSql = "") {
+            //获取所有分表集合
+            var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix,false);
+            
+            
+            //初始分页sql     SELECT * FROM dbo.DemoTable ORDER BY AddTime OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY
+            var initialOffset = pageSize * (currentPage-1);
+            //总offset/分表数量
+            var tableOffset = initialOffset / allShardingTableNameList.Count();
+
+            //首次查找
+            var firstResut =new List<List<TEntity>>();
+            //mintime
+            var minTime = DateTime.MaxValue;
+            //每个表查询出的最大time
+            var eachTableMaxTimes = new List<DateTime>();
+            //第一次查找
+            foreach (var tableName in allShardingTableNameList) {
+                var tempR1 = DapperHelper.QueryList<TEntity>(
+                    $"SELECT * FROM {tableName} ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY",
+                    null);
+              
+                if (tempR1.Any()) {
+                    //找出最小time
+                    if (orderType.ToLower() == "desc")
+                    {
+                        eachTableMaxTimes.Add(tempR1[0].AddTime);
+                        if (minTime > tempR1.Last().AddTime)
+                        {
+                            minTime = tempR1.Last().AddTime;
+                        }
+                    }
+                    else
+                    {
+                        eachTableMaxTimes.Add(tempR1.Last().AddTime);
+                        if (minTime > tempR1[0].AddTime)
+                        {
+                            minTime = tempR1[0].AddTime;
+                        }
+                    }
+
+                    firstResut.Add(tempR1);
+                }
+            }
+            //二次查询
+            var secondResults = new List<TEntity>();
+            for (var i=0;  i < allShardingTableNameList.Count();i++) {
+                var sql =
+                    $"SELECT * FROM {allShardingTableNameList.ElementAt(i)}  where AddTime between '{minTime}' and '{eachTableMaxTimes[i]}' ORDER BY {orderColumn} {orderType} ";
+                var tempR1 = DapperHelper.QueryList<TEntity>( $"SELECT * FROM {allShardingTableNameList.ElementAt(i)}  where AddTime between '{minTime}' and '{eachTableMaxTimes[i]}' ORDER BY {orderColumn} {orderType} ",    null);
+                secondResults.AddRange(tempR1);
+            }
+
+            secondResults = secondResults.OrderBy(t => t.AddTime).ToList();
+            //二次查询总量
+            var secondTotalCount = secondResults.Count;
+            //foreach (var item in secondResult) {
+            //    secondTotalCount += item.Count;
+            //}
+
+            var minTimeOffset = initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize);
+
+
+            return null;
+        }
+
+        
         /// <summary>
         /// 分页查询分表
         /// </summary>
@@ -332,7 +409,7 @@ namespace DbHelper
         /// 获取所有分表名
         /// </summary>
         /// <returns></returns>
-        private static IEnumerable<string> GetAllShardingTableNames(string tableNamePrefix)
+        private static IEnumerable<string> GetAllShardingTableNames(string tableNamePrefix,bool isContainesEmpty=true)
         {
             var result = new List<string>();
             var table = SqlHelper.ExecuteDataTable("select * from sysobjects where xtype='U'");
@@ -342,6 +419,13 @@ namespace DbHelper
                 var tableName = row["name"].ToString();
                 if (tableName.Contains(tableNamePrefix) && tableName != tableNamePrefix)
                 {
+                    //如果不包含空表
+                    if (!isContainesEmpty) {
+                        var r1 =(int) SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
+                        if (r1 <= 0) {
+                            continue;
+                        }
+                    }
                     result.Add(tableName);
                     //separateTableSuffixList.Add(int.Parse(tableName.Replace(tableNamePrefix, string.Empty)));
                 }

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbHelper", "..\DbHelper\DbH
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBHelperTest", "..\DBHelperTest\DBHelperTest.csproj", "{9C4E807D-EF6A-496A-BDF5-5C6F9D719251}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models", "..\Models\Models.csproj", "{21B0C35F-5862-4433-AA77-FB3F73ED186B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{9C4E807D-EF6A-496A-BDF5-5C6F9D719251}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C4E807D-EF6A-496A-BDF5-5C6F9D719251}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C4E807D-EF6A-496A-BDF5-5C6F9D719251}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21B0C35F-5862-4433-AA77-FB3F73ED186B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B0C35F-5862-4433-AA77-FB3F73ED186B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21B0C35F-5862-4433-AA77-FB3F73ED186B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21B0C35F-5862-4433-AA77-FB3F73ED186B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

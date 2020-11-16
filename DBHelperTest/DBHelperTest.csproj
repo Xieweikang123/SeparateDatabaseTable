@@ -61,6 +61,10 @@
       <Project>{741899CD-6754-4712-AEA8-FCEC0BCC5AEA}</Project>
       <Name>DbHelper</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Models\Models.csproj">
+      <Project>{21B0C35F-5862-4433-AA77-FB3F73ED186B}</Project>
+      <Name>Models</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SeparateDatabaseTable\SeparateDatabaseTable.csproj">
       <Project>{B80119B3-2DC0-4955-A5B1-812EA1CF22A1}</Project>
       <Name>SeparateDatabaseTable</Name>

@@ -4,13 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SeparateDatabaseTable.Models
+namespace Models
 {
     public class BaseModel
     {
-        public DateTime AddTime
-        {
-            get { return DateTime.Now; }
+        public DateTime AddTime {
+            get;
+            set;
         }
+
     }
 }
