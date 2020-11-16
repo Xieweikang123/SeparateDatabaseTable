@@ -150,10 +150,18 @@ namespace DbHelper
             //    secondTotalCount += item.Count;
             //}
 
-            var minTimeOffset = initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize);
+            var minTimeOffset =secondResults.Count>pageSize? initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize): initialOffset-1;
+            var pagingResult = new List<TEntity>();
+            for (var i = 0; i < secondResults.Count; i++) {
+                var curOffset = minTimeOffset + i;
+                if (curOffset >= initialOffset && curOffset < (initialOffset + pageSize)) {
+                    pagingResult.Add(secondResults[i]);
+                }else if (curOffset >= (initialOffset + pageSize)) {
+                    break;
+                }
+            }
 
-
-            return null;
+            return pagingResult;
         }
 
         

@@ -12,7 +12,20 @@ namespace DBHelperTest
     {
         [TestMethod]
         public void TestSecondarySearchPaging() {
-            var result = ShardingTableManager<DemoTable>.SecondarySearchPaging(3, 2, "DemoTable", "AddTime", "asc");
+            var result1 = ShardingTableManager<DemoTable>.SecondarySearchPaging(3, 2, "DemoTable", "AddTime", "asc");
+            var ep1 = DapperHelper.QueryList<DemoTable>(
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 3 ROWS FETCH NEXT 3 ROWS ONLY", null);
+            IsEqual(ep1,result1);
+
+            var result2 = ShardingTableManager<DemoTable>.SecondarySearchPaging(3, 1, "DemoTable", "AddTime", "asc");
+            var ep2 = DapperHelper.QueryList<DemoTable>(
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY", null);
+            IsEqual(ep2, result2);
+
+            var result3 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 2, "DemoTable", "AddTime", "asc");
+            var ep3 = DapperHelper.QueryList<DemoTable>(
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY", null);
+            IsEqual(ep3, result3);
         }
 
         [TestMethod]
@@ -56,10 +69,10 @@ namespace DBHelperTest
             var result6= ShardingTableManager<DemoTable>.GetPageEntities(300, 300, "*", "DemoTable", "", "AddTime", "asc", "Id") as List<DemoTable>;
         }
 
-        private void IsEqual(IList<DemoTable> ep,IList<DemoTable> re) {
-            Assert.AreEqual(ep.Count, re.Count());
-            Assert.AreEqual(ep[0].Id, re[0].Id);
-            Assert.AreEqual(ep[ep.Count - 1].Id, re[re.Count - 1].Id);
+        private void IsEqual(IEnumerable<DemoTable> ep,IEnumerable<DemoTable> re) {
+            Assert.AreEqual(ep.Count(), re.Count());
+            Assert.AreEqual(ep.First().Id, re.First().Id);
+            Assert.AreEqual(ep.Last().Id, re.Last().Id);
         }
     }
 }
