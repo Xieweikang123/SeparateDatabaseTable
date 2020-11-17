@@ -14,25 +14,23 @@ namespace DBHelperTest
         public void TestSecondarySearchPaging() {
             var result1 = ShardingTableManager<DemoTable>.SecondarySearchPaging(3, 2, "DemoTable", "AddTime", "asc");
             var ep1 = DapperHelper.QueryList<DemoTable>(
-                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 3 ROWS FETCH NEXT 3 ROWS ONLY", null);
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime,Id  OFFSET 3 ROWS FETCH NEXT 3 ROWS ONLY", null);
             IsEqual(ep1,result1);
 
             var result2 = ShardingTableManager<DemoTable>.SecondarySearchPaging(3, 1, "DemoTable", "AddTime", "asc");
             var ep2 = DapperHelper.QueryList<DemoTable>(
-                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY", null);
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime,Id  OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY", null);
             IsEqual(ep2, result2);
-
-            var result3 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 2, "DemoTable", "AddTime", "asc");
-            var ep3 = DapperHelper.QueryList<DemoTable>(
-                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY", null);
-            IsEqual(ep3, result3);
 
             var result4 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 2, "DemoTable", "AddTime", "asc","  AddTime>@AddTime ",new{AddTime= "2020-11-17 08:54:12" });
             var ep4 = DapperHelper.QueryList<DemoTable>(
                 $"SELECT * FROM dbo.DemoTable where  AddTime>@AddTime ORDER BY AddTime  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY", new { AddTime = "2020-11-17 08:54:12" });
             IsEqual(ep4, result4);
 
-
+            var result3 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 2, "DemoTable", "AddTime", "asc");
+            var ep3 = DapperHelper.QueryList<DemoTable>(
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime,Id  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY", null);
+            IsEqual(ep3, result3);
         }
 
         [TestMethod]

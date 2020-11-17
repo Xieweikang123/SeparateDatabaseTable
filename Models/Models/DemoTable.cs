@@ -8,7 +8,7 @@ namespace Models
 {
     public sealed class DemoTable:BaseModel
     {
-        public Guid Id { get; set; }
+       
         public string Value { get; set; }
     }
 }

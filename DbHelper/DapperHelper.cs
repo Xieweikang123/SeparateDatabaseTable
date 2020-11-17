@@ -41,6 +41,8 @@ namespace DbHelper
                 return result;
             }
         }
+
+     
         public static int Insert<TEntity>(string sql, IEnumerable<TEntity> entities)
         {
             using (var connection = new SqlConnection(connectionString))

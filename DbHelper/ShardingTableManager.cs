@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -95,9 +96,14 @@ namespace DbHelper
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix,false);
             //初始分页sql     SELECT * FROM dbo.DemoTable ORDER BY AddTime OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY
-            var initialOffset = pageSize * (currentPage-1);
+            //var initialOffset = pageSize * (currentPage-1);
+            var totalCount = pageSize * currentPage;
             //总offset/分表数量
-            var tableOffset = initialOffset / allShardingTableNameList.Count();
+            var tableOffset =totalCount/ allShardingTableNameList.Count();
+            if (tableOffset <= 0&&totalCount!=0) {
+                tableOffset = 1;
+            }
+            
 
             //首次查找
             var firstResut =new List<TEntity>();
@@ -111,7 +117,7 @@ namespace DbHelper
                 if (!string.IsNullOrWhiteSpace(whereSql)) {
                     querySql += $" where {whereSql} ";
                 }
-                querySql +=  $" ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+                querySql +=  $" ORDER BY {orderColumn},Id {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
                     //$"SELECT * FROM {tableName} ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
 
                 var tempR1 = DapperHelper.QueryList<TEntity>(querySql, whereObj);
@@ -149,14 +155,19 @@ namespace DbHelper
                 if (!string.IsNullOrWhiteSpace(whereSql)) {
                     sql += $" and {whereSql} ";
                 }
-                sql+=$" ORDER BY {orderColumn} {orderType} "; 
+                sql+=$" ORDER BY {orderColumn},Id {orderType} "; 
                 var tempR1 = DapperHelper.QueryList<TEntity>(sql,whereObj);
                 secondResults.AddRange(tempR1);
             }
 
             secondResults = secondResults.OrderBy(t => t.AddTime).ToList();
-            //二次查询总量
-            var secondTotalCount = secondResults.Count;
+
+            //差值
+            //var countDifference = 0;
+            //foreach (var item in secondResults) {
+            //    if(item.AddTime<=minTime)
+            //}
+   
             //foreach (var item in secondResult) {
             //    secondTotalCount += item.Count;
             //}
@@ -164,20 +175,44 @@ namespace DbHelper
             //var minTimeOffset =secondResults.Count>pageSize? initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize): initialOffset-1;
             var minTimeOffset = allShardingTableNameList.Count() * tableOffset -
                                 (secondResults.Count - firstResut.Count);
+            if (minTimeOffset < 0) {
+                minTimeOffset = 0;
+            }
             var pagingResult = new List<TEntity>();
             for (var i = 0; i < secondResults.Count; i++) {
                 var curOffset = minTimeOffset + i;
-                if (curOffset >= initialOffset && curOffset < (initialOffset + pageSize)) {
+                if (curOffset >= totalCount && curOffset < (totalCount + pageSize)) {
                     pagingResult.Add(secondResults[i]);
-                }else if (curOffset >= (initialOffset + pageSize)) {
+                }else if (curOffset >= (totalCount + pageSize)) {
                     break;
                 }
             }
 
             return pagingResult;
         }
-
-        
+        /// <summary>
+        /// 批量插入
+        /// </summary>
+        /// <param name="dataTable"></param>
+        /// <param name="tableName"></param>
+        public static void InsertSqlBulk(DataTable dataTable, string tableName)
+        {
+            //数据表是否存在
+            if (!IsTableExist(tableName))
+            {
+                //不存在，创建
+                SqlHelper.ExecuteNonQuery($"SELECT* INTO {tableName} FROM {tableNamePrefix} WHERE 1 = 2");
+            }
+            using (var conn = new SqlConnection(SqlHelper.GetSqlConnectionString()))
+            {
+                SqlBulkCopy bulkCopy = new SqlBulkCopy(conn);
+                bulkCopy.DestinationTableName = tableName;
+                bulkCopy.BatchSize = dataTable.Rows.Count;
+                bulkCopy.BulkCopyTimeout = 120;
+                conn.Open();
+                bulkCopy.WriteToServer(dataTable);
+            }
+        }
         /// <summary>
         /// 分页查询分表
         /// </summary>
@@ -287,22 +322,7 @@ namespace DbHelper
             return allCount;
         }
 
-        //public static void ThreadMethod(object parameter) //方法内可以有参数，也可以没有参数
-        //{
-        //    var sql = ((dynamic)parameter).sql;
-
-        //    var obj=((dynamic)parameter).obj;
-
-        //    var resultEntities1 = ((dynamic)parameter).resultEntities1 as List<TEntity>;
-        //    lock (resultEntities1)
-        //    {
-        //        resultEntities1.AddRange(DapperHelper.QueryList<TEntity>(sql, obj));
-        //    }
-
-        //    Console.WriteLine($"线程{sql}执行完毕 ");
-        //    ((dynamic)parameter).mre.Set();
-        //}
-
+     
         /// <summary>
         /// 向数据库插入数据并判断是否需要分表
         /// </summary>
