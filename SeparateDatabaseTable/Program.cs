@@ -14,7 +14,7 @@ namespace SeparateDatabaseTable
     {
         static void Main(string[] args)
         {
-
+            CreateData();
 
             #region 查询
 
@@ -65,8 +65,8 @@ namespace SeparateDatabaseTable
         private static void CreateData() {
             #region 创建数据
 
-            var totalCount = 18;
-            var eachCount = 6;
+            var totalCount = 90;
+            ShardingTableManager<DemoTable>.eachTableSize = 30;
 
             //var time = DateTime.Now.AddMinutes(new Random().Next(1000));
             var dateNow = DateTime.Now;
@@ -81,9 +81,9 @@ namespace SeparateDatabaseTable
             var entities=new List<DemoTable>();
             for (int i = 0; i < totalCount; i++) {
                 entities.Add(new DemoTable(){
-                Id=Guid.NewGuid(),
-                Value = "testValue" + i,
-                AddTime = dateNow.AddSeconds(random.Next(2000))
+                    Id=Guid.NewGuid(),
+                    Value = "testValue" + i,
+                    AddTime = dateNow.AddSeconds(random.Next(2000))
                 });
             }
 
@@ -96,7 +96,7 @@ namespace SeparateDatabaseTable
             {
                 listItem.Add(item);
 
-                if ((++index) % eachCount == 0)
+                if ((++index) % ShardingTableManager<DemoTable>.eachTableSize == 0)
                 {
                     groupList.Add(listItem);
                     listItem = new List<DemoTable>();

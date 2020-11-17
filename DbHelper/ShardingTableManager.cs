@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ namespace DbHelper
         /// </summary>
         public static string tableNamePrefix;
 
-        private static readonly int eachTableSize = 6;
+        public static  int eachTableSize = 6;
         /// <summary>
         /// 查询结果集
         /// </summary>
@@ -90,27 +91,30 @@ namespace DbHelper
         /// <param name="obj"></param>
         /// <param name="filesSql"></param>
         /// <returns></returns>
-        public static IEnumerable<TEntity> SecondarySearchPaging(int pageSize,int currentPage, string tableNamePrefix, string orderColumn,string orderType, string whereSql = "") {
+        public static IEnumerable<TEntity> SecondarySearchPaging(int pageSize,int currentPage, string tableNamePrefix, string orderColumn,string orderType, string whereSql = "",object whereObj=null) {
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix,false);
-            
-            
             //初始分页sql     SELECT * FROM dbo.DemoTable ORDER BY AddTime OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY
             var initialOffset = pageSize * (currentPage-1);
             //总offset/分表数量
             var tableOffset = initialOffset / allShardingTableNameList.Count();
 
             //首次查找
-            var firstResut =new List<List<TEntity>>();
+            var firstResut =new List<TEntity>();
             //mintime
             var minTime = DateTime.MaxValue;
             //每个表查询出的最大time
             var eachTableMaxTimes = new List<DateTime>();
             //第一次查找
             foreach (var tableName in allShardingTableNameList) {
-                var tempR1 = DapperHelper.QueryList<TEntity>(
-                    $"SELECT * FROM {tableName} ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY",
-                    null);
+                var querySql = $"SELECT * FROM {tableName} ";
+                if (!string.IsNullOrWhiteSpace(whereSql)) {
+                    querySql += $" where {whereSql} ";
+                }
+                querySql +=  $" ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+                    //$"SELECT * FROM {tableName} ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+
+                var tempR1 = DapperHelper.QueryList<TEntity>(querySql, whereObj);
               
                 if (tempR1.Any()) {
                     //找出最小time
@@ -131,15 +135,22 @@ namespace DbHelper
                         }
                     }
 
-                    firstResut.Add(tempR1);
+                    firstResut.AddRange(tempR1);
                 }
             }
+            ////第一次查找的数据量
+            //var firstCount = 0;
+            
             //二次查询
             var secondResults = new List<TEntity>();
             for (var i=0;  i < allShardingTableNameList.Count();i++) {
                 var sql =
-                    $"SELECT * FROM {allShardingTableNameList.ElementAt(i)}  where AddTime between '{minTime}' and '{eachTableMaxTimes[i]}' ORDER BY {orderColumn} {orderType} ";
-                var tempR1 = DapperHelper.QueryList<TEntity>( $"SELECT * FROM {allShardingTableNameList.ElementAt(i)}  where AddTime between '{minTime}' and '{eachTableMaxTimes[i]}' ORDER BY {orderColumn} {orderType} ",    null);
+                    $"SELECT * FROM {allShardingTableNameList.ElementAt(i)}  where AddTime between '{minTime}' and '{eachTableMaxTimes[i]}'  ";
+                if (!string.IsNullOrWhiteSpace(whereSql)) {
+                    sql += $" and {whereSql} ";
+                }
+                sql+=$" ORDER BY {orderColumn} {orderType} "; 
+                var tempR1 = DapperHelper.QueryList<TEntity>(sql,whereObj);
                 secondResults.AddRange(tempR1);
             }
 
@@ -150,7 +161,9 @@ namespace DbHelper
             //    secondTotalCount += item.Count;
             //}
 
-            var minTimeOffset =secondResults.Count>pageSize? initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize): initialOffset-1;
+            //var minTimeOffset =secondResults.Count>pageSize? initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize): initialOffset-1;
+            var minTimeOffset = allShardingTableNameList.Count() * tableOffset -
+                                (secondResults.Count - firstResut.Count);
             var pagingResult = new List<TEntity>();
             for (var i = 0; i < secondResults.Count; i++) {
                 var curOffset = minTimeOffset + i;

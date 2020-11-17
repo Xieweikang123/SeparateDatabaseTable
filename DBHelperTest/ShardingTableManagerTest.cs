@@ -26,6 +26,13 @@ namespace DBHelperTest
             var ep3 = DapperHelper.QueryList<DemoTable>(
                 $"SELECT * FROM dbo.DemoTable ORDER BY AddTime  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY", null);
             IsEqual(ep3, result3);
+
+            var result4 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 2, "DemoTable", "AddTime", "asc","  AddTime>@AddTime ",new{AddTime= "2020-11-17 08:54:12" });
+            var ep4 = DapperHelper.QueryList<DemoTable>(
+                $"SELECT * FROM dbo.DemoTable where  AddTime>@AddTime ORDER BY AddTime  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY", new { AddTime = "2020-11-17 08:54:12" });
+            IsEqual(ep4, result4);
+
+
         }
 
         [TestMethod]
