@@ -96,13 +96,13 @@ namespace DbHelper
             //获取所有分表集合
             var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix,false);
             //初始分页sql     SELECT * FROM dbo.DemoTable ORDER BY AddTime OFFSET 1 ROWS FETCH NEXT 3 ROWS ONLY
-            //var initialOffset = pageSize * (currentPage-1);
-            var totalCount = pageSize * currentPage;
+            var initialOffset = pageSize * (currentPage - 1);
+            //var totalCount = pageSize * currentPage;
             //总offset/分表数量
-            var tableOffset =totalCount/ allShardingTableNameList.Count();
-            if (tableOffset <= 0&&totalCount!=0) {
-                tableOffset = 1;
-            }
+            var tableOffset = initialOffset / allShardingTableNameList.Count();
+            //if (tableOffset <= 0&&totalCount!=0) {
+            //    tableOffset = 1;
+            //}
             
 
             //首次查找
@@ -117,7 +117,7 @@ namespace DbHelper
                 if (!string.IsNullOrWhiteSpace(whereSql)) {
                     querySql += $" where {whereSql} ";
                 }
-                querySql +=  $" ORDER BY {orderColumn},Id {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+                querySql +=  $" ORDER BY {orderColumn} {orderType},Id  OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
                     //$"SELECT * FROM {tableName} ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
 
                 var tempR1 = DapperHelper.QueryList<TEntity>(querySql, whereObj);
@@ -155,7 +155,7 @@ namespace DbHelper
                 if (!string.IsNullOrWhiteSpace(whereSql)) {
                     sql += $" and {whereSql} ";
                 }
-                sql+=$" ORDER BY {orderColumn},Id {orderType} "; 
+                sql+=$" ORDER BY {orderColumn} {orderType},Id "; 
                 var tempR1 = DapperHelper.QueryList<TEntity>(sql,whereObj);
                 secondResults.AddRange(tempR1);
             }
@@ -181,9 +181,9 @@ namespace DbHelper
             var pagingResult = new List<TEntity>();
             for (var i = 0; i < secondResults.Count; i++) {
                 var curOffset = minTimeOffset + i;
-                if (curOffset >= totalCount && curOffset < (totalCount + pageSize)) {
+                if (curOffset >= initialOffset && curOffset < (initialOffset+pageSize)) {
                     pagingResult.Add(secondResults[i]);
-                }else if (curOffset >= (totalCount + pageSize)) {
+                }else if (curOffset >= (initialOffset + pageSize)) {
                     break;
                 }
             }
