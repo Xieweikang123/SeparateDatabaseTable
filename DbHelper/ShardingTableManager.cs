@@ -117,7 +117,7 @@ namespace DbHelper
                 if (!string.IsNullOrWhiteSpace(whereSql)) {
                     querySql += $" where {whereSql} ";
                 }
-                querySql +=  $" ORDER BY {orderColumn} {orderType},Id  OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+                querySql +=  $" ORDER BY {orderColumn} {orderType}  OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
                     //$"SELECT * FROM {tableName} ORDER BY {orderColumn} {orderType} OFFSET {tableOffset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
 
                 var tempR1 = DapperHelper.QueryList<TEntity>(querySql, whereObj);
@@ -155,7 +155,7 @@ namespace DbHelper
                 if (!string.IsNullOrWhiteSpace(whereSql)) {
                     sql += $" and {whereSql} ";
                 }
-                sql+=$" ORDER BY {orderColumn} {orderType},Id "; 
+                sql+=$" ORDER BY {orderColumn} {orderType} "; 
                 var tempR1 = DapperHelper.QueryList<TEntity>(sql,whereObj);
                 secondResults.AddRange(tempR1);
             }
@@ -208,7 +208,7 @@ namespace DbHelper
                 SqlBulkCopy bulkCopy = new SqlBulkCopy(conn);
                 bulkCopy.DestinationTableName = tableName;
                 bulkCopy.BatchSize = dataTable.Rows.Count;
-                bulkCopy.BulkCopyTimeout = 120;
+                bulkCopy.BulkCopyTimeout = 1200;
                 conn.Open();
                 bulkCopy.WriteToServer(dataTable);
             }

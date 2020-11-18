@@ -15,9 +15,15 @@ namespace SeparateDatabaseTable
     {
         static void Main(string[] args)
         {
-            CreateData();
+            var stopWatch = new System.Diagnostics.Stopwatch();
+            stopWatch.Start();
+            var result1 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 200, "DemoTable", "AddTime", "asc");
+            Console.WriteLine($"多表查询 耗时:{stopWatch.Elapsed}");
+            stopWatch.Restart();
+            var result2 = DapperHelper.QueryList<DemoTable>(
+                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime asc  OFFSET (200-1)*15 ROWS FETCH NEXT 15 ROWS ONLY", null);
 
-
+            Console.WriteLine($"单表查询 耗时:{stopWatch.Elapsed}");
             #region 查询
 
             //var stopWatch=new System.Diagnostics.Stopwatch();
@@ -68,8 +74,8 @@ namespace SeparateDatabaseTable
         {
             #region 创建数据
 
-            var totalCount = 1000;
-            ShardingTableManager<DemoTable>.eachTableSize = 300;
+            var totalCount = 6000000;
+            ShardingTableManager<DemoTable>.eachTableSize = 3000000;
 
             //var time = DateTime.Now.AddMinutes(new Random().Next(1000));
             var dateNow = DateTime.Now;
@@ -84,6 +90,7 @@ namespace SeparateDatabaseTable
             var entities = new List<DemoTable>();
 
             var dataTable = new DataTable();
+            
             dataTable.Columns.AddRange(new DataColumn[] {
                 new DataColumn("Id",typeof(Guid)),
                 new DataColumn("Value",typeof(string)),
