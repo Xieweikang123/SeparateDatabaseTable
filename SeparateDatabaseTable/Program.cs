@@ -15,15 +15,19 @@ namespace SeparateDatabaseTable
     {
         static void Main(string[] args)
         {
-            var stopWatch = new System.Diagnostics.Stopwatch();
-            stopWatch.Start();
-            var result1 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, 200, "DemoTable", "AddTime", "asc");
-            Console.WriteLine($"多表查询 耗时:{stopWatch.Elapsed}");
-            stopWatch.Restart();
-            var result2 = DapperHelper.QueryList<DemoTable>(
-                $"SELECT * FROM dbo.DemoTable ORDER BY AddTime asc  OFFSET (200-1)*15 ROWS FETCH NEXT 15 ROWS ONLY", null);
+            CreateData();
 
-            Console.WriteLine($"单表查询 耗时:{stopWatch.Elapsed}");
+
+            //var stopWatch = new System.Diagnostics.Stopwatch();
+            //stopWatch.Start();
+            //var currentPage = 200000;
+            //var result1 = ShardingTableManager<DemoTable>.SecondarySearchPaging(15, currentPage, "DemoTable", "AddTime", "asc");
+            //Console.WriteLine($"多表查询 耗时:{stopWatch.Elapsed}");
+            //stopWatch.Restart();
+            //var result2 = DapperHelper.QueryList<DemoTable>(
+            //    $"SELECT * FROM dbo.DemoTable ORDER BY AddTime asc  OFFSET ({currentPage}-1)*15 ROWS FETCH NEXT 15 ROWS ONLY", null);
+
+            //Console.WriteLine($"单表查询 耗时:{stopWatch.Elapsed}");
             #region 查询
 
             //var stopWatch=new System.Diagnostics.Stopwatch();
@@ -69,12 +73,14 @@ namespace SeparateDatabaseTable
 
             Console.ReadKey();
         }
-
+        /// <summary>
+        /// 创建测试数据
+        /// </summary>
         private static void CreateData()
         {
             #region 创建数据
 
-            var totalCount = 6000000;
+            var totalCount = 10000000;
             ShardingTableManager<DemoTable>.eachTableSize = 3000000;
 
             //var time = DateTime.Now.AddMinutes(new Random().Next(1000));
@@ -87,32 +93,35 @@ namespace SeparateDatabaseTable
             //    Value = "testValue" + i,
             //    AddTime = dateNow.AddSeconds(random.Next(2000))
             //});
-            var entities = new List<DemoTable>();
+            var entities = new List<DemoTableTimestamp>();
 
             var dataTable = new DataTable();
             
             dataTable.Columns.AddRange(new DataColumn[] {
                 new DataColumn("Id",typeof(Guid)),
                 new DataColumn("Value",typeof(string)),
+                new DataColumn("Timestamp",typeof(ulong)),
                 new DataColumn("AddTime",typeof(DateTime))
             });
-            for (var i = 0; i < totalCount; i++)
-            {
-                var demoTable = new DemoTable()
+            for (var i = 0; i < totalCount; i++) {
+                dateNow = DateTime.Now;
+                var demoTable = new DemoTableTimestamp()
                 {
                     Id = Guid.NewGuid(),
                     Value = "testValue" + i,
+                    Timestamp =Convert.ToUInt64(dateNow.ToString("yyyyMMddHHmmssfff")),
                     AddTime = dateNow.AddSeconds(random.Next(2000))
                 };
                 entities.Add(demoTable);
                 var dr = dataTable.NewRow();
                 dr[0] = demoTable.Id;
                 dr[1] = demoTable.Value;
-                dr[2] = demoTable.AddTime;
+                dr[2] = demoTable.Timestamp;
+                dr[3] = demoTable.AddTime;
                 dataTable.Rows.Add(dr);
             }
 
-            ShardingTableManager<DemoTable>.InsertSqlBulk(dataTable, "DemoTable");
+            ShardingTableManager<DemoTable>.InsertSqlBulk(dataTable, "DemoTableTimestamp");
             //DapperHelper.Insert<DemoTable>("insert into DemoTable values(@Id,@Value,@AddTime)", entities);
             ShardingTableManager<DemoTable>.tableNamePrefix = "DemoTable";
             var groupList = new List<DataTable>();

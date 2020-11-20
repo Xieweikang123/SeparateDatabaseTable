@@ -31,12 +31,10 @@ namespace DbHelper
         /// 要分表的表前缀
         /// </summary>
         public static string tableNamePrefix;
-
-        public static  int eachTableSize = 6;
         /// <summary>
-        /// 查询结果集
+        /// 每一个表要分的数量
         /// </summary>
-        private static List<TEntity> resultEntities;
+        public static  int eachTableSize ;
         /// <summary>
         /// 将所有分表汇总到一起
         /// </summary>
@@ -161,18 +159,6 @@ namespace DbHelper
             }
 
             secondResults = secondResults.OrderBy(t => t.AddTime).ToList();
-
-            //差值
-            //var countDifference = 0;
-            //foreach (var item in secondResults) {
-            //    if(item.AddTime<=minTime)
-            //}
-   
-            //foreach (var item in secondResult) {
-            //    secondTotalCount += item.Count;
-            //}
-
-            //var minTimeOffset =secondResults.Count>pageSize? initialOffset - (secondTotalCount - allShardingTableNameList.Count() * pageSize): initialOffset-1;
             var minTimeOffset = allShardingTableNameList.Count() * tableOffset -
                                 (secondResults.Count - firstResut.Count);
             if (minTimeOffset < 0) {
@@ -213,60 +199,60 @@ namespace DbHelper
                 bulkCopy.WriteToServer(dataTable);
             }
         }
-        /// <summary>
-        /// 分页查询分表
-        /// </summary>
-        /// <param name="pageSize">每页大小</param>
-        /// <param name="currentPage">当前页，从1开始</param>
-        /// <param name="columns">要筛选的列</param>
-        /// <param name="tableNamePrefix">分表前缀</param>
-        /// <param name="whereStr">查询条件</param>
-        /// <param name="orderColumn">排序的字段</param>
-        /// <param name="orderType">排序类型 desc asc</param>
-        /// <param name="pkColumn">主键</param>
-        /// <returns></returns>
-        public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn)
-        {
-            //获取所有分表集合
-            var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
-            //总偏移量
-            var totalPageOffset = (currentPage - 1) * pageSize;
-            //当前已遍历表的行数 已偏移量
-            var currentSearchCount = 0;
-            var sql = string.Empty;
-            //循环轮数
-            var tableIndex = -1;
-            var resultList = new List<TEntity>();
-            foreach (var tableName in allShardingTableNameList)
-            {
-                tableIndex++;
+        ///// <summary>
+        ///// 分页查询分表
+        ///// </summary>
+        ///// <param name="pageSize">每页大小</param>
+        ///// <param name="currentPage">当前页，从1开始</param>
+        ///// <param name="columns">要筛选的列</param>
+        ///// <param name="tableNamePrefix">分表前缀</param>
+        ///// <param name="whereStr">查询条件</param>
+        ///// <param name="orderColumn">排序的字段</param>
+        ///// <param name="orderType">排序类型 desc asc</param>
+        ///// <param name="pkColumn">主键</param>
+        ///// <returns></returns>
+        //public static IEnumerable<TEntity> GetPageEntities(Int32 pageSize, Int32 currentPage, String columns, String tableNamePrefix, String whereStr, String orderColumn, String orderType, String pkColumn)
+        //{
+        //    //获取所有分表集合
+        //    var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix);
+        //    //总偏移量
+        //    var totalPageOffset = (currentPage - 1) * pageSize;
+        //    //当前已遍历表的行数 已偏移量
+        //    var currentSearchCount = 0;
+        //    var sql = string.Empty;
+        //    //循环轮数
+        //    var tableIndex = -1;
+        //    var resultList = new List<TEntity>();
+        //    foreach (var tableName in allShardingTableNameList)
+        //    {
+        //        tableIndex++;
 
-                //当前表行项数 
-                var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
-                //剩余偏移量
-                var residualOffsetCount = totalPageOffset - currentSearchCount;
-                residualOffsetCount = residualOffsetCount > 0 ? residualOffsetCount : 0;
-                //剩余检索行数
-                var residualRowsCount = pageSize - resultList.Count;
-                currentSearchCount += currentTableRowCount;
-                //已检索表数据量小于分页偏移量，说明此表不在分页范围内，继续
-                if (currentSearchCount < totalPageOffset) {
-                    continue;
-                }
+        //        //当前表行项数 
+        //        var currentTableRowCount = (int)SqlHelper.ExecuteScalar($"select count(1) from {tableName}");
+        //        //剩余偏移量
+        //        var residualOffsetCount = totalPageOffset - currentSearchCount;
+        //        residualOffsetCount = residualOffsetCount > 0 ? residualOffsetCount : 0;
+        //        //剩余检索行数
+        //        var residualRowsCount = pageSize - resultList.Count;
+        //        currentSearchCount += currentTableRowCount;
+        //        //已检索表数据量小于分页偏移量，说明此表不在分页范围内，继续
+        //        if (currentSearchCount < totalPageOffset) {
+        //            continue;
+        //        }
 
-                //此表存在要分页的数据  存在多少，从哪里开始分页  ;
-                //分两种情况：1 初次分表  2 继续分表
-                sql = $"select * from {tableName} order by {orderColumn} {orderType} OFFSET {residualOffsetCount} rows fetch next {residualRowsCount} rows only";
-                var currentResult = DapperHelper.QueryList<TEntity>(sql, null);
-                resultList.AddRange(currentResult);
-                //检索够了
-                if (pageSize == resultList.Count) {
-                    return resultList;
-                }
-            }
+        //        //此表存在要分页的数据  存在多少，从哪里开始分页  ;
+        //        //分两种情况：1 初次分表  2 继续分表
+        //        sql = $"select * from {tableName} order by {orderColumn} {orderType} OFFSET {residualOffsetCount} rows fetch next {residualRowsCount} rows only";
+        //        var currentResult = DapperHelper.QueryList<TEntity>(sql, null);
+        //        resultList.AddRange(currentResult);
+        //        //检索够了
+        //        if (pageSize == resultList.Count) {
+        //            return resultList;
+        //        }
+        //    }
 
-            return resultList;
-        }
+        //    return resultList;
+        //}
 
 
         /// <summary>
@@ -322,12 +308,12 @@ namespace DbHelper
             return allCount;
         }
 
-     
+
         /// <summary>
         /// 向数据库插入数据并判断是否需要分表
         /// </summary>
         /// <typeparam name="TEntity"></typeparam>
-        /// <param name="sql"></param>
+        /// <param name="insertValueParam">@Id,@Value,@AddTime</param>
         /// <param name="entity">要插入的实体</param>
         /// <param name="tableName">表名前缀</param>
         /// <param name="shardingType">分表方式</param>

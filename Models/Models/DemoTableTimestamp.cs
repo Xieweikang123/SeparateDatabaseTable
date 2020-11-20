@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Models
 {
-    public sealed class DemoTable : BaseModel
+    public sealed class DemoTableTimestamp : BaseModel
     {
        
         public string Value { get; set; }
-      
+        public ulong Timestamp { get; set; }
     }
 }

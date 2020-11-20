@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="Class1.cs" />
     <Compile Include="Models\BaseModel.cs" />
+    <Compile Include="Models\DemoTableTimestamp.cs" />
     <Compile Include="Models\DemoTable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

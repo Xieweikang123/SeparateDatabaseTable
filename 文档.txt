@@ -1,0 +1,33 @@
+
+分表帮助类：DbHelper下的  ShardingTableManager ：
+							 二次查找分页法：SecondarySearchPaging
+							 通过表前缀获取最后一个分表表名：GetLastInsertTableName；
+							 通过表前缀获取所有分表表名：GetAllShardingTableNames 
+							 
+							 
+//分表原则 支持哪几项原则
+ShardingTableManager 类下的 InsertToSeparateTable方法：向数据库插入数据并判断是否需要分表
+	有两种插入数据原则：按日期和按数量
+		1、按数量：查找此分表最后一个分表，向此表插入数据，插入完毕后判断此表是否达到单表最大量，达到的话创建新表,格式：tableName0；
+		2、按日期：可以按年、月、日进行表命名，格式：tableName_2020_11_20
+//分表查询
+	1 统计所有分表里数据行项总数的方法名 QueryCount
+	2 二次查找分页法：SecondarySearchPaging
+		查询步骤：先获取所有分表的表名  var allShardingTableNameList = GetAllShardingTableNames(tableNamePrefix,false);
+		第一次查找：
+			然后改写单表查询的分页语句
+				改写前SELECT * FROM dbo.DemoTable  ORDER BY AddTime asc  OFFSET 15 ROWS FETCH NEXT 15 ROWS ONLY
+				改写后SELECT * FROM dbo.DemoTable  ORDER BY AddTime asc  OFFSET 15/分表数量 ROWS FETCH NEXT 15 ROWS ONLY 
+				   var initialOffset = pageSize * (currentPage - 1);
+				   var tableOffset = initialOffset / allShardingTableNameList.Count();
+			通过改写后的分页语句查询所有分表里最小的time(minTime)和每个表各自的最大time
+		然后进行二次查找：
+			查找每个表time 在 最小time 和 此表最大time 之间的结果   
+				var sql =$"SELECT * FROM {allShardingTableNameList.ElementAt(i)}  where AddTime between '{minTime}' and '{eachTableMaxTimes[i]}'  ";
+			然后计算最小time(minTime) 的在总表中的偏移量，计算方法为 每个表初始偏移量*表数量-(二次查找量-第一次查找量)
+			知道minTime 偏移量后，可以依据这个来计算要分页的行项。
+			
+			
+		
+		
+
