@@ -15,8 +15,8 @@ namespace SeparateDatabaseTable
     {
         static void Main(string[] args)
         {
-            CreateData();
-
+            //创建数据
+            //CreateData();
 
             //var stopWatch = new System.Diagnostics.Stopwatch();
             //stopWatch.Start();

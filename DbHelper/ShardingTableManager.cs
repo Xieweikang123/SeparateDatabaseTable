@@ -85,10 +85,13 @@ namespace DbHelper
         /// <summary>
         /// 二次查找分页法
         /// </summary>
-        /// <param name="tableNamePrefix"></param>
-        /// <param name="whereSql"></param>
-        /// <param name="obj"></param>
-        /// <param name="filesSql"></param>
+        /// <param name="pageSize">每页页数</param>
+        /// <param name="currentPage">要查找第几页</param>
+        /// <param name="tableNamePrefix">分表前缀</param>
+        /// <param name="orderColumn">排序的列</param>
+        /// <param name="orderType">排序类型 asc desc</param>
+        /// <param name="whereSql">筛选条件</param>
+        /// <param name="whereObj">变量值对象</param>
         /// <returns></returns>
         public static IEnumerable<TEntity> SecondarySearchPaging(int pageSize,int currentPage, string tableNamePrefix, string orderColumn,string orderType, string whereSql = "",object whereObj=null) {
             //获取所有分表集合
